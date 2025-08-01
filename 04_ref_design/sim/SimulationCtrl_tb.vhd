@@ -38,6 +38,19 @@ entity SimulationCtrl_tb is
 end entity SimulationCtrl_tb;
 
 architecture behav of SimulationCtrl_tb is
+
+	constant NUM_FRAMES : integer := 4;
+
+	constant IN_ROWS : integer := 300; -- MUST BE MULTIPLE OF 16 AND : If Mono8 then *AT LEAST* 32, if Mono16 then *AT LEAST* 16
+	constant IN_COLS : integer := 320;
+	constant OUT_ROWS : integer := 48;
+	constant OUT_COLS : integer := 48;
+	constant NUM_CROPS : integer := 5;
+
+	constant INPUT_FILE : string := "/home/aelabd/RHEED/CoaxlinkOcto_1cam_2404/tb_data_Mono8/" 
+									& integer'image(IN_ROWS) & "x" & integer'image(IN_COLS) 
+									& "_to_" & integer'image(OUT_ROWS) & "x" & integer'image(OUT_COLS) 
+									& "x" &integer'image(NUM_CROPS) & "/img_precrop_Mono8_INDEX.dat";
 	
 begin
 
@@ -274,7 +287,7 @@ begin
 		Ref_MementoEvent_gen	(clk,status,ctrl, 0, x"AAAAAAAA");
 		Ref_PixelLut_Negative_on(clk,status,ctrl, 0);
 		EnableDataStream		(clk,status,ctrl, 0);
-		FrameRequest			(clk,status,ctrl, 0, 5, 256, 10, Mono8, FALSE);
+		FrameRequest			(clk,status,ctrl, 0, NUM_FRAMES, IN_COLS, IN_ROWS, Mono8, TRUE, FALSE, INPUT_FILE);
 
 		-- To read image data from a file, change the absolute path here below to locate the file containing the data.
 		-- In addition, Linux users must update the FILE_PATH_LENGTH constant in Simulation_FileIO_pkg.vhd
