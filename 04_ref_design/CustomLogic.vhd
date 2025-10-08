@@ -154,7 +154,7 @@ architecture behav of CustomLogic is
 	----------------------------------------------------------------------------
 	-- Constants
 	----------------------------------------------------------------------------
-	constant NUM_FRAMES : integer := 4;
+	constant NUM_FRAMES : integer := 2;
 
 	constant IN_ROWS : integer := 300;
 	constant IN_COLS : integer := 320;
@@ -179,7 +179,8 @@ architecture behav of CustomLogic is
 
 	type crop_coords_x_wire is array (NUM_CROPS-1 downto 0) of std_logic_vector(clog2(IN_COLS)-1 downto 0);
 	type crop_coords_y_wire is array(NUM_CROPS-1 downto 0) of std_logic_vector(clog2(IN_ROWS)-1 downto 0);
-	type out_arr is array (NUM_CROPS-1 downto 0) of std_logic_vector(159 downto 0);
+    type out_arr is array (NUM_CROPS-1 downto 0) of std_logic_vector(159 downto 0);  -- 32 bits per parameter; bits 32->22 are zero by design, bits 22->11 are incidentally zero because all outputs are entirely fractional 
+	type out_arr_16_5 is array (NUM_CROPS-1 downto 0) of std_logic_vector(79 downto 0); -- 5-parameters at 16-bits fits into 80 bits; no information lost by cropping integer bits because, again, entirely fractional
 	type out_mem_arr is array (NUM_CROPS-1 downto 0, 4 downto 0) of std_logic_vector(21 downto 0);
 	type diff_arr is array (NUM_CROPS-1 downto 0) of integer;
 	
@@ -197,6 +198,7 @@ architecture behav of CustomLogic is
 	-- Master-side handshake
 	signal rheed_m_axis_tvalid : std_logic;
 	signal rheed_m_axis_tdata : out_arr;
+    signal rheed_m_axis_tdata_16_5: out_arr_16_5;
 
 	-- crop_idx being currently read out
 	signal crop_idx_read : std_logic_vector(clog2(NUM_CROPS)-1 downto 0);
@@ -297,6 +299,14 @@ begin
 
 	  crop_idx_read => crop_idx_read
     );
+    -- Crop unused bits from rheed_m_axis_tdata and send to rheed_m_axis_tdata_16_5
+    gen_outer : for i_crop in NUM_CROPS-1 downto 0 generate
+        gen_inner : for i_parameter in 4 downto 0 generate
+            -- sign bit; NOTE: we're guaranteed entirely fractional numbers, so no overflow handling here
+            rheed_m_axis_tdata_16_5(i_crop)(79 - i_parameter*16) <= rheed_m_axis_tdata(i_crop)(159-i_parameter*32-10); -- NOTE: result_t is ap_fixed<22,11>, NOT ap_fixed<32,11>
+            rheed_m_axis_tdata_16_5(i_crop)(79-i_parameter*16-1 downto 79-i_parameter*16-15) <= rheed_m_axis_tdata(i_crop)(159 - i_parameter*32 - 10 - 7 downto 159 - i_parameter*32 - 31);
+        end generate gen_inner;
+    end generate gen_outer;
 
 	--------- For testbenching ---------
 
