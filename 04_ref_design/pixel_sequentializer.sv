@@ -6,7 +6,7 @@
 // This is necessary because the downstream hls4ml module only accepts a stream of one pixel per clock-cycle
 // This module also outputs the x- and y- coordinate of the current output pixel - helpful/necessary for the downstream crop_norm module
 
-module sequentializer_Mono8 #(
+module pixel_sequentializer #(
     parameter IN_ROWS           = 20, // Must be multiple of PIXELS_PER_BURST. Purposely wrong here to ensure instantiation is correct in CustomLogic.vhd
     parameter IN_COLS           = 20
 )(
@@ -54,9 +54,9 @@ module sequentializer_Mono8 #(
 
     // Drive frame-started
     always_ff @(posedge clk) begin
-        if (reset) frame_started = 1'b0;
-        else if (cnt_idx_in_frame==IN_ROWS*IN_COLS-1) frame_started = 1'b0;
-        else if (ap_start && ap_ready) frame_started = 1'b1;
+        if (reset) frame_started <= 1'b0;
+        else if (cnt_idx_in_frame==IN_ROWS*IN_COLS-1) frame_started <= 1'b0;
+        else if (ap_start && ap_ready) frame_started <= 1'b1;
     end
 
     // Drive shift-register to store pixel-burst

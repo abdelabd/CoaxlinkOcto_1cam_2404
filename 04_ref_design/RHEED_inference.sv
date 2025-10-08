@@ -78,7 +78,7 @@ module RHEED_inference #(
     assign cn_ap_done = cn_ap_done_all[0] && cn_ap_done_all[1] && cn_ap_done_all[2] && cn_ap_done_all[3] && cn_ap_done_all[4];
     assign cn_ap_ready = cn_ap_ready_all[0] && cn_ap_ready_all[1] && cn_ap_ready_all[2] && cn_ap_ready_all[3] && cn_ap_ready_all[4];
     assign cn_s_axis_tready = cn_s_axis_tready_all[0] && cn_s_axis_tready_all[1] && cn_s_axis_tready_all[2] && cn_s_axis_tready_all[3] && cn_s_axis_tready_all[4];
-    sequentializer_Mono8 #(
+    pixel_sequentializer #(
       .IN_ROWS(IN_ROWS),
       .IN_COLS(IN_COLS)
     )

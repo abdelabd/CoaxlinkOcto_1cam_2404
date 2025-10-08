@@ -182,8 +182,6 @@ architecture behav of CustomLogic is
     type out_arr is array (NUM_CROPS-1 downto 0) of std_logic_vector(159 downto 0);  -- 32 bits per parameter; bits 32->22 are zero by design, bits 22->11 are incidentally zero because all outputs are entirely fractional 
 	type out_arr_16_5 is array (NUM_CROPS-1 downto 0) of std_logic_vector(79 downto 0); -- 5-parameters at 16-bits fits into 80 bits; no information lost by cropping integer bits because, again, entirely fractional
 	type out_mem_arr is array (NUM_CROPS-1 downto 0, 4 downto 0) of std_logic_vector(15 downto 0);
-	type diff_arr is array (NUM_CROPS-1 downto 0) of integer;
-	
 
 	----------------------------------------------------------------------------
 	-- Signals
@@ -319,14 +317,14 @@ begin
 	end process;
 
 	-- Drive downstream tready
-	-- tb_s_axis_tready <= '1';
-	iRBG: entity work.lfsr_16bit
-	port map (
-		clk => clk250,
-		reset => reset_rheed,
-		Q => lfsr_16bit_out
-	);
-	tb_s_axis_tready <= lfsr_16bit_out(0);
+	tb_s_axis_tready <= '1';
+	-- iRBG: entity work.lfsr_16bit
+	-- port map (
+	-- 	clk => clk250,
+	-- 	reset => reset_rheed,
+	-- 	Q => lfsr_16bit_out
+	-- );
+	-- tb_s_axis_tready <= lfsr_16bit_out(0);
 
 	-- Drive crop-coordinates
 	gen_assign : for i in NUM_CROPS-1 downto 0 generate
