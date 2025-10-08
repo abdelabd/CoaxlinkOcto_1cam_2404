@@ -154,7 +154,7 @@ architecture behav of CustomLogic is
 	----------------------------------------------------------------------------
 	-- Constants
 	----------------------------------------------------------------------------
-	constant NUM_FRAMES : integer := 2;
+	constant NUM_FRAMES : integer := 3;
 
 	constant IN_ROWS : integer := 300;
 	constant IN_COLS : integer := 320;
@@ -181,7 +181,7 @@ architecture behav of CustomLogic is
 	type crop_coords_y_wire is array(NUM_CROPS-1 downto 0) of std_logic_vector(clog2(IN_ROWS)-1 downto 0);
     type out_arr is array (NUM_CROPS-1 downto 0) of std_logic_vector(159 downto 0);  -- 32 bits per parameter; bits 32->22 are zero by design, bits 22->11 are incidentally zero because all outputs are entirely fractional 
 	type out_arr_16_5 is array (NUM_CROPS-1 downto 0) of std_logic_vector(79 downto 0); -- 5-parameters at 16-bits fits into 80 bits; no information lost by cropping integer bits because, again, entirely fractional
-	type out_mem_arr is array (NUM_CROPS-1 downto 0, 4 downto 0) of std_logic_vector(21 downto 0);
+	type out_mem_arr is array (NUM_CROPS-1 downto 0, 4 downto 0) of std_logic_vector(15 downto 0);
 	type diff_arr is array (NUM_CROPS-1 downto 0) of integer;
 	
 
@@ -227,27 +227,27 @@ architecture behav of CustomLogic is
 											& integer'image(IN_ROWS) & "x" & integer'image(IN_COLS) 
 											& "_to_" & integer'image(OUT_ROWS) & "x" & integer'image(OUT_COLS) & "x" & integer'image(NUM_CROPS)
 											& "/Y1_" & integer'image(CROP_Y0_N_CONST(0)) &"_X1_" & integer'image(CROP_X0_N_CONST(0)) 
-											& "/QKeras_mg1_pred_ap_fixed_22_11.txt";
+											& "/QKeras_mg1_pred_ap_fixed_16_5.txt";
 	constant OUT_BENCHMARK_FILE_1    : string := "/home/aelabd/RHEED/CoaxlinkOcto_1cam_2404/tb_data_Mono8/" 
 											& integer'image(IN_ROWS) & "x" & integer'image(IN_COLS) 
 											& "_to_" & integer'image(OUT_ROWS) & "x" & integer'image(OUT_COLS) & "x" & integer'image(NUM_CROPS)
 											& "/Y1_" & integer'image(CROP_Y0_N_CONST(1)) &"_X1_" & integer'image(CROP_X0_N_CONST(1)) 
-											& "/QKeras_mg1_pred_ap_fixed_22_11.txt";
+											& "/QKeras_mg1_pred_ap_fixed_16_5.txt";
 	constant OUT_BENCHMARK_FILE_2    : string := "/home/aelabd/RHEED/CoaxlinkOcto_1cam_2404/tb_data_Mono8/" 
 											& integer'image(IN_ROWS) & "x" & integer'image(IN_COLS) 
 											& "_to_" & integer'image(OUT_ROWS) & "x" & integer'image(OUT_COLS) & "x" & integer'image(NUM_CROPS)
 											& "/Y1_" & integer'image(CROP_Y0_N_CONST(2)) &"_X1_" & integer'image(CROP_X0_N_CONST(2)) 
-											& "/QKeras_mg1_pred_ap_fixed_22_11.txt";
+											& "/QKeras_mg1_pred_ap_fixed_16_5.txt";
 	constant OUT_BENCHMARK_FILE_3    : string := "/home/aelabd/RHEED/CoaxlinkOcto_1cam_2404/tb_data_Mono8/" 
 											& integer'image(IN_ROWS) & "x" & integer'image(IN_COLS) 
 											& "_to_" & integer'image(OUT_ROWS) & "x" & integer'image(OUT_COLS) & "x" & integer'image(NUM_CROPS)
 											& "/Y1_" & integer'image(CROP_Y0_N_CONST(3)) &"_X1_" & integer'image(CROP_X0_N_CONST(3)) 
-											& "/QKeras_mg1_pred_ap_fixed_22_11.txt";
+											& "/QKeras_mg1_pred_ap_fixed_16_5.txt";
 	constant OUT_BENCHMARK_FILE_4    : string := "/home/aelabd/RHEED/CoaxlinkOcto_1cam_2404/tb_data_Mono8/" 
 											& integer'image(IN_ROWS) & "x" & integer'image(IN_COLS) 
 											& "_to_" & integer'image(OUT_ROWS) & "x" & integer'image(OUT_COLS) & "x" & integer'image(NUM_CROPS)
 											& "/Y1_" & integer'image(CROP_Y0_N_CONST(4)) &"_X1_" & integer'image(CROP_X0_N_CONST(4)) 
-											& "/QKeras_mg1_pred_ap_fixed_22_11.txt";
+											& "/QKeras_mg1_pred_ap_fixed_16_5.txt";
 
 	-- synthesis translate_on
 
@@ -338,7 +338,7 @@ begin
 	load_cn_benchmark: process
         file file_handle_0, file_handle_1, file_handle_2, file_handle_3, file_handle_4       : text;
         variable line_content_0, line_content_1, line_content_2, line_content_3, line_content_4  : line;
-        variable temp_vector_0, temp_vector_1, temp_vector_2, temp_vector_3, temp_vector_4   : std_logic_vector(21 downto 0);
+        variable temp_vector_0, temp_vector_1, temp_vector_2, temp_vector_3, temp_vector_4   : std_logic_vector(15 downto 0);
         variable row      : integer;
     begin
         file_open(file_handle_0, OUT_BENCHMARK_FILE_0, read_mode);
@@ -398,7 +398,7 @@ begin
 			if rheed_m_axis_tvalid = '1' and tb_s_axis_tready = '1' then
 				for crop_idx in NUM_CROPS-1 downto 0 loop 
 					for row in 4 downto 0 loop
-						out_mem(crop_idx, row) <= rheed_m_axis_tdata(crop_idx)(159-10-row*32 downto 159-31-row*32);
+						out_mem(crop_idx, row) <= rheed_m_axis_tdata_16_5(crop_idx)(79-row*16 downto 79 - row*16 - 15);
 					end loop;
 				end loop;
 			end if;
