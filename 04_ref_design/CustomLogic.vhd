@@ -154,7 +154,7 @@ architecture behav of CustomLogic is
 	----------------------------------------------------------------------------
 	-- Constants
 	----------------------------------------------------------------------------
-	constant NUM_FRAMES : integer := 3;
+	constant NUM_FRAMES : integer := 2;
 
 	constant IN_ROWS : integer := 300;
 	constant IN_COLS : integer := 320;
@@ -201,12 +201,20 @@ architecture behav of CustomLogic is
 	-- crop_idx being currently read out
 	signal crop_idx_read : std_logic_vector(clog2(NUM_CROPS)-1 downto 0);
 
+	-- Signals for attaching CNN results to the output stream
+    signal stored_cnn_results  : out_arr_16_5;
+    signal results_are_latched : std_logic := '0';
+    signal overlay_counter     : integer range 0 to NUM_CROPS := 0;
+
 	-- Custom downstream tready signal for randomized testbenching
 	signal tb_s_axis_tready : std_logic;
 
 	-- Crop-coordinates
 	signal crop_y0_n : crop_coords_y_wire;
 	signal crop_x0_n : crop_coords_x_wire;
+
+	-- New internal signal for s_axis_tready logic
+    signal s_axis_tready_internal : std_logic;
 
 	--------- For testbenching ---------
 	-- synthesis translate_off
@@ -249,27 +257,63 @@ architecture behav of CustomLogic is
 
 	-- synthesis translate_on
 
-	----------------------------------------------------------------------------
-	-- Debug
-	----------------------------------------------------------------------------
-	-- attribute mark_debug : string;
-	-- attribute mark_debug of s_axis_resetn	: signal is "true";
-
-	----------------------------------------------------------------------------
-	-- Components
-	----------------------------------------------------------------------------
-
 begin
 
 		
-	-- Bypass these connections for now. 
-	m_axis_tdata <= rheed_m_axis_tdata(0)(127 downto 0);
+	----------------------------------------------------------------------------
+    -- AXI Stream Pass-through with Result Overlay
+    -- This section implements the logic to pass the video stream through while
+    -- overlaying the CNN results from the RHEED core onto the data stream.
+    ----------------------------------------------------------------------------
+
+    -- The master interface valid and user signals are directly connected from the slave interface.
 	m_axis_tuser <= s_axis_tuser;
-	m_axis_tvalid <= rheed_m_axis_tvalid;
+	m_axis_tvalid <= s_axis_tvalid;
+
+	-- The internal signal is driven by the logic
+    s_axis_tready_internal <= m_axis_tready and rheed_s_axis_tready;
+    
+    -- The output port is unconditionally driven by the internal signal
+    s_axis_tready <= s_axis_tready_internal;
+
+	-- This process latches results from the RHEED core and controls the overlay counter.
+    overlay_control_proc: process(clk250)
+    begin
+        if rising_edge(clk250) then
+            if reset_rheed = '1' then
+                results_are_latched <= '0';
+                overlay_counter     <= 0;
+            else
+                -- Latch new results when available from the RHEED core
+                if rheed_m_axis_tvalid = '1' then
+                    stored_cnn_results  <= rheed_m_axis_tdata_16_5;
+                    results_are_latched <= '1';
+                end if;
+
+                 if s_axis_tuser(3) = '1' and s_axis_tvalid = '1' and s_axis_tready_internal = '1' then
+                    -- At the end of a frame (s_axis_tuser(3)), reset counter for the next frame.
+                    overlay_counter <= 0;
+                elsif results_are_latched = '1' and overlay_counter < NUM_CROPS and s_axis_tvalid = '1' and s_axis_tready_internal = '1' then
+                    -- If results are available, we are in the overlay window (first NUM_CROPS pixels),
+                    -- and a data transfer occurs, increment the counter.
+                    overlay_counter <= overlay_counter + 1;
+                end if;
+            end if;
+        end if;
+    end process overlay_control_proc;
+
+	-- Generate the final output data. Default to pass-through, but overlay CNN results when enabled.
+    -- The result for a given crop (width 80) replaces the lower 80 bits of the stream data (width 128).
+    m_axis_tdata <= s_axis_tdata(STREAM_DATA_WIDTH-1 downto 80) & stored_cnn_results(overlay_counter)
+                    when results_are_latched = '1' and overlay_counter < NUM_CROPS else
+                    s_axis_tdata;
+
+	----------------------------------------------------------------------------
+    -- RHEED Inference Core Instantiation
+    ----------------------------------------------------------------------------
 
 	-- Instantiate RHEED_inference module
 	reset_rheed <= (not s_axis_resetn) or srst250;
-	s_axis_tready <= rheed_s_axis_tready; -- For clarity's sake
 	iRHEED : entity work.RHEED_inference
 	generic map (
     	IN_ROWS 		=> IN_ROWS, 
