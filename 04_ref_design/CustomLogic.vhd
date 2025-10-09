@@ -265,7 +265,7 @@ begin
 
     -- The master interface valid and user signals are directly connected from the slave interface.
 	m_axis_tuser <= s_axis_tuser;
-	m_axis_tvalid <= s_axis_tvalid;
+	m_axis_tvalid <= s_axis_tvalid AND rheed_s_axis_tready;
 
     -- The output port is unconditionally driven by the internal signal
     s_axis_tready <= rheed_s_axis_tready;
