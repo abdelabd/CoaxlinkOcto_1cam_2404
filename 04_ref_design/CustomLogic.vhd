@@ -213,9 +213,6 @@ architecture behav of CustomLogic is
 	signal crop_y0_n : crop_coords_y_wire;
 	signal crop_x0_n : crop_coords_x_wire;
 
-	-- New internal signal for s_axis_tready logic
-    signal s_axis_tready_internal : std_logic;
-
 	--------- For testbenching ---------
 	-- synthesis translate_off
 
@@ -270,11 +267,8 @@ begin
 	m_axis_tuser <= s_axis_tuser;
 	m_axis_tvalid <= s_axis_tvalid;
 
-	-- The internal signal is driven by the logic
-    s_axis_tready_internal <= m_axis_tready and rheed_s_axis_tready;
-    
     -- The output port is unconditionally driven by the internal signal
-    s_axis_tready <= s_axis_tready_internal;
+    s_axis_tready <= rheed_s_axis_tready;
 
 	-- This process latches results from the RHEED core and controls the overlay counter.
     overlay_control_proc: process(clk250)
@@ -290,10 +284,10 @@ begin
                     results_are_latched <= '1';
                 end if;
 
-                 if s_axis_tuser(3) = '1' and s_axis_tvalid = '1' and s_axis_tready_internal = '1' then
+                 if s_axis_tuser(3) = '1' and s_axis_tvalid = '1' and rheed_s_axis_tready = '1' then
                     -- At the end of a frame (s_axis_tuser(3)), reset counter for the next frame.
                     overlay_counter <= 0;
-                elsif results_are_latched = '1' and overlay_counter < NUM_CROPS and s_axis_tvalid = '1' and s_axis_tready_internal = '1' then
+                elsif results_are_latched = '1' and overlay_counter < NUM_CROPS and s_axis_tvalid = '1' and rheed_s_axis_tready = '1' then
                     -- If results are available, we are in the overlay window (first NUM_CROPS pixels),
                     -- and a data transfer occurs, increment the counter.
                     overlay_counter <= overlay_counter + 1;
