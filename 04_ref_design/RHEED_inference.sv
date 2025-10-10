@@ -24,6 +24,8 @@ module RHEED_inference #(
     input  logic            m_axis_tready,
     output logic [159:0]    m_axis_tdata [NUM_CROPS-1:0],
 
+    input logic             m_axis_tready_top,
+
     // crop-index 
     output logic [$clog2(NUM_CROPS)-1:0] crop_idx_read
 );
@@ -99,6 +101,8 @@ module RHEED_inference #(
 	  .m_axis_tvalid(seq_m_axis_tvalid),
 	  .m_axis_tready(cn_s_axis_tready),
 	  .m_axis_tdata(seq_m_axis_tdata),
+
+      .m_axis_tready_top(m_axis_tready_top),
 
 	  .cnt_col(seq_cnt_col),
 	  .cnt_row(seq_cnt_row)

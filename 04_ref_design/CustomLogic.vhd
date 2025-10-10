@@ -332,6 +332,8 @@ begin
 	  m_axis_tvalid => rheed_m_axis_tvalid,
 	  m_axis_tready => tb_s_axis_tready,
 	  m_axis_tdata => rheed_m_axis_tdata,
+	  
+	  m_axis_tready_top => m_axis_tready,
 
 	  crop_idx_read => crop_idx_read
     );

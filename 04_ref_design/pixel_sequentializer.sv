@@ -30,6 +30,8 @@ module pixel_sequentializer #(
     input  logic                   m_axis_tready,
     output logic [7:0] m_axis_tdata,
 
+    input logic                    m_axis_tready_top,
+
     output logic [$clog2(IN_COLS)-1:0] cnt_col,
     output logic [$clog2(IN_ROWS)-1:0] cnt_row
 );
@@ -38,6 +40,8 @@ module pixel_sequentializer #(
 
     /////////////////////////////////// WIRE DECLARATIONS ///////////////////////////////////
     
+    logic s_axis_tready_internal;
+
     logic frame_started; // Tells us not to do anything until we're receiving pixels from the actual frame 
 
     logic [7:0] pixel_buffer [PIXELS_PER_BURST-1:0]; // Shift-register memory
@@ -117,7 +121,7 @@ module pixel_sequentializer #(
                 ap_ready = cn_ap_ready;
                 ap_idle = 1'b1;
 
-                s_axis_tready = 1'b0;
+                s_axis_tready_internal = 1'b0;
                 m_axis_tvalid = 1'b0;
                 load = 1'b0;
                 shift = 1'b0;
@@ -129,7 +133,7 @@ module pixel_sequentializer #(
                 ap_ready = 1'b0;
                 ap_idle = 1'b0;
 
-                s_axis_tready = 1'b1;
+                s_axis_tready_internal = 1'b1;
                 m_axis_tvalid = 1'b0;
                 load = s_axis_tvalid && s_axis_tready;
                 shift = 1'b0;
@@ -141,7 +145,7 @@ module pixel_sequentializer #(
                 ap_ready = 1'b0;
                 ap_idle = 1'b0;
 
-                s_axis_tready = 1'b0;
+                s_axis_tready_internal = 1'b0;
                 m_axis_tvalid = 1'b1;
                 load = 1'b0;
                 shift = m_axis_tvalid && m_axis_tready;
@@ -154,7 +158,7 @@ module pixel_sequentializer #(
                 ap_ready = 1'b0; 
                 ap_idle = 1'b0;
                 
-                s_axis_tready = 1'b0;
+                s_axis_tready_internal = 1'b0;
                 m_axis_tvalid = 1'b0;
                 load = 1'b0;
                 shift = 1'b0;
@@ -163,6 +167,8 @@ module pixel_sequentializer #(
 
         endcase 
     end
+
+    assign s_axis_tready = s_axis_tready_internal && m_axis_tready_top;
 
     // Drive m_axis_tdata
     assign m_axis_tdata = pixel_buffer[0]; // Output is the bottom byte of pixel_buffer
